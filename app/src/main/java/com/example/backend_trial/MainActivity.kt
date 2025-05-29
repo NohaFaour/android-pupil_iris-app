@@ -29,17 +29,21 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import java.util.concurrent.TimeUnit
 import android.graphics.Bitmap
+import com.yalantis.ucrop.UCrop
+import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
     private val PICK_IMAGE = 1
     private val CAPTURE_IMAGE = 2
     private val CAMERA_PERMISSION_CODE = 100
+    private val CROP_IMAGE = 3
     private var imageUri: Uri? = null
     private lateinit var imageView: ImageView
     private lateinit var tvResult: TextView
     private lateinit var btnCapture: Button
     private lateinit var btnSelect: Button
     private lateinit var btnProcess: Button
+    private lateinit var btnCrop: Button
     private var currentPhotoPath: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,11 +55,13 @@ class MainActivity : AppCompatActivity() {
         btnCapture = findViewById(R.id.btnCapture)
         btnSelect = findViewById(R.id.btnSelect)
         btnProcess = findViewById(R.id.btnProcess)
+        btnCrop = findViewById(R.id.btnCrop)
 
         // Initial state: only show capture/select buttons
         imageView.visibility = View.GONE
         tvResult.visibility = View.GONE
         btnProcess.visibility = View.GONE
+        btnCrop.visibility = View.GONE
         btnCapture.visibility = View.VISIBLE
         btnSelect.visibility = View.VISIBLE
 
@@ -71,6 +77,12 @@ class MainActivity : AppCompatActivity() {
                 ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.CAMERA), CAMERA_PERMISSION_CODE)
             } else {
                 launchCamera()
+            }
+        }
+
+        btnCrop.setOnClickListener {
+            imageUri?.let { uri ->
+                startCrop(uri)
             }
         }
 
@@ -96,6 +108,14 @@ class MainActivity : AppCompatActivity() {
         startActivityForResult(intent, CAPTURE_IMAGE)
     }
 
+    private fun startCrop(uri: Uri) {
+        val destinationFileName = "cropped_${System.currentTimeMillis()}.jpg"
+        val uCropIntent = UCrop.of(uri, Uri.fromFile(File(cacheDir, destinationFileName)))
+            .withAspectRatio(1f, 1f)
+            .withMaxResultSize(800, 800)
+            .start(this)
+    }
+
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == CAMERA_PERMISSION_CODE) {
@@ -110,27 +130,49 @@ class MainActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == PICK_IMAGE && resultCode == Activity.RESULT_OK) {
-            imageUri = data?.data
-            Glide.with(this).load(imageUri).into(imageView)
-            imageView.visibility = View.VISIBLE
-            btnProcess.visibility = View.VISIBLE
-            btnCapture.visibility = View.GONE
-            btnSelect.visibility = View.GONE
-            tvResult.visibility = View.GONE
-        } else if (requestCode == CAPTURE_IMAGE && resultCode == Activity.RESULT_OK) {
-            val file = File(currentPhotoPath ?: "")
-            if (file.exists() && file.length() > 0) {
-                imageUri = Uri.fromFile(file)
-                Glide.with(this).load(imageUri).into(imageView)
-                imageView.visibility = View.VISIBLE
-                btnProcess.visibility = View.VISIBLE
-                btnCapture.visibility = View.GONE
-                btnSelect.visibility = View.GONE
-                tvResult.visibility = View.GONE
-            } else {
-                tvResult.text = "Failed to capture image"
-                tvResult.visibility = View.VISIBLE
+        when (requestCode) {
+            PICK_IMAGE -> {
+                if (resultCode == Activity.RESULT_OK) {
+                    imageUri = data?.data
+                    Glide.with(this).load(imageUri).into(imageView)
+                    imageView.visibility = View.VISIBLE
+                    btnCrop.visibility = View.VISIBLE
+                    btnProcess.visibility = View.VISIBLE
+                    btnCapture.visibility = View.GONE
+                    btnSelect.visibility = View.GONE
+                    tvResult.visibility = View.GONE
+                }
+            }
+            CAPTURE_IMAGE -> {
+                if (resultCode == Activity.RESULT_OK) {
+                    val file = File(currentPhotoPath ?: "")
+                    if (file.exists() && file.length() > 0) {
+                        imageUri = Uri.fromFile(file)
+                        Glide.with(this).load(imageUri).into(imageView)
+                        imageView.visibility = View.VISIBLE
+                        btnCrop.visibility = View.VISIBLE
+                        btnProcess.visibility = View.VISIBLE
+                        btnCapture.visibility = View.GONE
+                        btnSelect.visibility = View.GONE
+                        tvResult.visibility = View.GONE
+                    } else {
+                        tvResult.text = "Failed to capture image"
+                        tvResult.visibility = View.VISIBLE
+                    }
+                }
+            }
+            UCrop.REQUEST_CROP -> {
+                if (resultCode == Activity.RESULT_OK) {
+                    val resultUri = UCrop.getOutput(data!!)
+                    resultUri?.let {
+                        imageUri = it
+                        Glide.with(this).load(it).into(imageView)
+                    }
+                } else if (resultCode == UCrop.RESULT_ERROR) {
+                    val cropError = UCrop.getError(data!!)
+                    tvResult.text = "Crop error: ${cropError?.message}"
+                    tvResult.visibility = View.VISIBLE
+                }
             }
         }
     }
@@ -189,7 +231,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun createTempFileFromUri(uri: Uri): File {
-        if (currentPhotoPath != null && File(currentPhotoPath!!).exists()) {
+        if (currentPhotoPath != null && uri == Uri.fromFile(File(currentPhotoPath!!)) && File(currentPhotoPath!!).exists()) {
             return File(currentPhotoPath!!)
         }
         val inputStream = contentResolver.openInputStream(uri)

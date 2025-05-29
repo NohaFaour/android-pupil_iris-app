@@ -21,6 +21,14 @@
         android:layout_gravity="center_horizontal"
         android:visibility="gone"/>
 
+    <Button
+        android:id="@+id/btnCrop"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Adjust Image Size"
+        android:layout_marginTop="8dp"
+        android:visibility="gone"/>
+
     <TextView
         android:id="@+id/tvResult"
         android:layout_width="match_parent"

@@ -20,10 +20,10 @@ reflection_threshold = 200
 bright_spots = (img_pixels > reflection_threshold).astype(np.uint8) * 255
 reflection_mask = cv2.bitwise_and(bright_spots, pupil_mask)
 
-kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (6, 6))
+kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
 reflection_mask = cv2.dilate(reflection_mask, kernel, iterations=2)
 
-img_cleaned_telea = cv2.inpaint(img_pixels, reflection_mask, inpaintRadius=6, flags=cv2.INPAINT_TELEA)
+img_cleaned_telea = cv2.inpaint(img_pixels, reflection_mask, inpaintRadius=7, flags=cv2.INPAINT_TELEA)
 img_pixels = img_cleaned_telea
 
 # ─── Run IRIS Pipeline ─────────────────────────────────────────────────────────

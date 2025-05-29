@@ -27,11 +27,11 @@ def analyze_iris_image(img_pixels):
     reflection_mask = cv2.bitwise_and(bright_spots, pupil_mask)
 
     # Optional: Refine reflection mask with larger kernel
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
     reflection_mask = cv2.dilate(reflection_mask, kernel, iterations=2)
 
     # Step 4: Inpaint reflections with larger radius
-    img_cleaned = cv2.inpaint(img_pixels, reflection_mask, inpaintRadius=7, flags=cv2.INPAINT_NS)
+    img_cleaned = cv2.inpaint(img_pixels, reflection_mask, inpaintRadius=9, flags=cv2.INPAINT_NS)
 
     # Step 5: Run IRIS pipeline with cleaned image
     iris_pipeline = iris.IRISPipeline(env=iris.IRISPipeline.DEBUGGING_ENVIRONMENT)

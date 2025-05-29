@@ -44,6 +44,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSelect: Button
     private lateinit var btnProcess: Button
     private lateinit var btnCrop: Button
+    private lateinit var btnRetry: Button
     private var currentPhotoPath: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,12 +57,14 @@ class MainActivity : AppCompatActivity() {
         btnSelect = findViewById(R.id.btnSelect)
         btnProcess = findViewById(R.id.btnProcess)
         btnCrop = findViewById(R.id.btnCrop)
+        btnRetry = findViewById(R.id.btnRetry)
 
         // Initial state: only show capture/select buttons
         imageView.visibility = View.GONE
         tvResult.visibility = View.GONE
         btnProcess.visibility = View.GONE
         btnCrop.visibility = View.GONE
+        btnRetry.visibility = View.GONE
         btnCapture.visibility = View.VISIBLE
         btnSelect.visibility = View.VISIBLE
 
@@ -86,10 +89,16 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        btnRetry.setOnClickListener {
+            resetToInitialState()
+        }
+
         btnProcess.setOnClickListener {
             imageUri?.let {
                 tvResult.text = "Result will appear here"
                 tvResult.visibility = View.VISIBLE
+                btnProcess.visibility = View.GONE
+                btnCrop.visibility = View.GONE
                 uploadImage(it)
             }
         }
@@ -138,6 +147,7 @@ class MainActivity : AppCompatActivity() {
                     imageView.visibility = View.VISIBLE
                     btnCrop.visibility = View.VISIBLE
                     btnProcess.visibility = View.VISIBLE
+                    btnRetry.visibility = View.GONE
                     btnCapture.visibility = View.GONE
                     btnSelect.visibility = View.GONE
                     tvResult.visibility = View.GONE
@@ -152,6 +162,7 @@ class MainActivity : AppCompatActivity() {
                         imageView.visibility = View.VISIBLE
                         btnCrop.visibility = View.VISIBLE
                         btnProcess.visibility = View.VISIBLE
+                        btnRetry.visibility = View.GONE
                         btnCapture.visibility = View.GONE
                         btnSelect.visibility = View.GONE
                         tvResult.visibility = View.GONE
@@ -199,6 +210,7 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     tvResult.text = "Error: ${e.message}"
                     tvResult.visibility = View.VISIBLE
+                    btnRetry.visibility = View.VISIBLE
                 }
             }
             override fun onResponse(call: Call, response: Response) {
@@ -218,12 +230,16 @@ class MainActivity : AppCompatActivity() {
                         tvResult.visibility = View.VISIBLE
                         imageView.visibility = View.VISIBLE
                         btnProcess.visibility = View.GONE
+                        btnCrop.visibility = View.GONE
+                        btnRetry.visibility = View.VISIBLE
                     } catch (e: JSONException) {
                         tvResult.text = "Server error: $result"
                         tvResult.visibility = View.VISIBLE
+                        btnRetry.visibility = View.VISIBLE
                     } catch (e: Exception) {
                         tvResult.text = "Error parsing result: ${e.message}"
                         tvResult.visibility = View.VISIBLE
+                        btnRetry.visibility = View.VISIBLE
                     }
                 }
             }
@@ -281,5 +297,19 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return name
+    }
+
+    private fun resetToInitialState() {
+        imageView.setImageDrawable(null)
+        imageView.visibility = View.GONE
+        tvResult.text = "Result will appear here"
+        tvResult.visibility = View.GONE
+        btnProcess.visibility = View.GONE
+        btnCrop.visibility = View.GONE
+        btnRetry.visibility = View.GONE
+        btnCapture.visibility = View.VISIBLE
+        btnSelect.visibility = View.VISIBLE
+        imageUri = null
+        currentPhotoPath = null
     }
 }

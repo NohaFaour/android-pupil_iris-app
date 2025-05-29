@@ -69,7 +69,7 @@ def analyze_iris_image(img_pixels):
     ax.add_patch(circle_patch)
 
     # Add legend and title
-    plt.legend()
+    plt.legend(loc='lower center', bbox_to_anchor=(0.5, -0.15), ncol=2)
     plt.title("Full Geometry + Fitted Pupil Circle")
     plt.axis("off")
 
@@ -84,6 +84,7 @@ def analyze_iris_image(img_pixels):
 @app.post("/analyze_iris/")
 async def analyze_iris(file: UploadFile = File(...)):
     contents = await file.read()
+    print(f"Received file size: {len(contents)} bytes")
     nparr = np.frombuffer(contents, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
     if img is None:

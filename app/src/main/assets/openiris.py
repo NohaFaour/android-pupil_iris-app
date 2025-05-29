@@ -5,7 +5,7 @@ import iris
 from matplotlib.patches import Circle
 
 # ─── Load IR Image ─────────────────────────────────────────────────────────────
-img_path = r"C:\Users\nohaf\Downloads\sample_ir_image2.jpg"
+img_path = r"C:\Users\nohaf\Downloads\WhatsApp Image 2025-05-29 at 3.48.39 AM.jpeg"
 img_pixels = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
 
 # --- Inpainting Step: Remove Reflections from Pupil Area ---

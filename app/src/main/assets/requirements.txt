@@ -1,7 +1,6 @@
 fastapi==0.104.1
 uvicorn==0.24.0
 python-multipart==0.0.6
-numpy==1.26.2
+numpy>=1.21.0,<1.22.0
 opencv-python==4.8.1.78
-matplotlib==3.8.2
-iris-pipeline==0.1.0  # Note: You may need to adjust this version based on your actual iris package 
+matplotlib==3.8.2 

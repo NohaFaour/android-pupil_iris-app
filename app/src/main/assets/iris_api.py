@@ -10,11 +10,7 @@ from io import BytesIO
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
-app = FastAPI(
-    title="IRIS Analysis API",
-    description="API for analyzing iris images and detecting pupil/iris boundaries",
-    version="1.0.0"
-)
+app = FastAPI()
 
 # Add CORS middleware
 app.add_middleware(
@@ -25,7 +21,7 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-@app.api_route("/", methods=["GET", "HEAD"])
+@app.get("/")
 async def root():
     return {
         "message": "Welcome to the IRIS Analysis API",

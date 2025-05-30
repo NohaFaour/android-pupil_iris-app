@@ -153,9 +153,9 @@ class CameraFragment : Fragment() {
     private fun uploadImage(uri: Uri) {
         val file = createTempFileFromUri(uri)
         val client = OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
+            .connectTimeout(ApiConfig.CONNECT_TIMEOUT, TimeUnit.SECONDS)
+            .writeTimeout(ApiConfig.WRITE_TIMEOUT, TimeUnit.SECONDS)
+            .readTimeout(ApiConfig.READ_TIMEOUT, TimeUnit.SECONDS)
             .build()
         val requestBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
@@ -163,7 +163,7 @@ class CameraFragment : Fragment() {
             .build()
 
         val request = Request.Builder()
-            .url("http://192.168.0.111:8000/analyze_iris/")
+            .url(ApiConfig.BASE_URL + ApiConfig.ANALYZE_IRIS_ENDPOINT)
             .post(requestBody)
             .build()
 

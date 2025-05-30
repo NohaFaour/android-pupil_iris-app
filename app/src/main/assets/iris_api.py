@@ -1,5 +1,6 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
 import cv2
 import io
@@ -9,7 +10,31 @@ from io import BytesIO
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
-app = FastAPI()
+app = FastAPI(
+    title="IRIS Analysis API",
+    description="API for analyzing iris images and detecting pupil/iris boundaries",
+    version="1.0.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
+@app.get("/")
+async def root():
+    return {
+        "message": "Welcome to the IRIS Analysis API",
+        "endpoints": {
+            "/analyze_iris/": "POST - Upload and analyze an iris image",
+            "/docs": "GET - API documentation (Swagger UI)",
+            "/redoc": "GET - Alternative API documentation (ReDoc)"
+        }
+    }
 
 def analyze_iris_image(img_pixels):
     # Step 1: First run to extract segmentation from original image
@@ -97,4 +122,4 @@ async def analyze_iris(file: UploadFile = File(...)):
     if img is None:
         return JSONResponse({"error": "Invalid image file."}, status_code=400)
     result = analyze_iris_image(img)
-    return JSONResponse(result)
+    return JSONResponse(result) 

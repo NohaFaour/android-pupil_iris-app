@@ -1,40 +1,20 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
 import cv2
 import io
-from iris import IRISPipeline, IRImage, IRISVisualizer
+import iris 
 import base64
 from io import BytesIO
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle
+
 
 app = FastAPI()
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
-)
-
-@app.get("/")
-async def root():
-    return {
-        "message": "Welcome to the IRIS Analysis API",
-        "endpoints": {
-            "/analyze_iris/": "POST - Upload and analyze an iris image",
-            "/docs": "GET - API documentation (Swagger UI)",
-            "/redoc": "GET - Alternative API documentation (ReDoc)"
-        }
-    }
-
 def analyze_iris_image(img_pixels):
     # Step 1: First run to extract segmentation from original image
-    iris_pipeline_temp = IRISPipeline(env=IRISPipeline.DEBUGGING_ENVIRONMENT)
+    iris_pipeline_temp = iris_pipeline = iris.IRISPipeline(env=iris.IRISPipeline.DEBUGGING_ENVIRONMENT)
+
     _ = iris_pipeline_temp(img_data=img_pixels, eye_side="right")
 
     # Step 2: Extract pupil segmentation mask
@@ -55,7 +35,7 @@ def analyze_iris_image(img_pixels):
     img_cleaned = cv2.inpaint(img_pixels, reflection_mask, inpaintRadius=9, flags=cv2.INPAINT_NS)
 
     # Step 5: Run IRIS pipeline with cleaned image
-    iris_pipeline = IRISPipeline(env=IRISPipeline.DEBUGGING_ENVIRONMENT)
+    iris_pipeline = iris.IRISPipeline(env=iris.IRISPipeline.DEBUGGING_ENVIRONMENT)
     output = iris_pipeline(img_data=img_cleaned, eye_side="right")
 
     geometry = iris_pipeline.call_trace['geometry_estimation']
@@ -118,4 +98,4 @@ async def analyze_iris(file: UploadFile = File(...)):
     if img is None:
         return JSONResponse({"error": "Invalid image file."}, status_code=400)
     result = analyze_iris_image(img)
-    return JSONResponse(result) 
+    return JSONResponse(result)

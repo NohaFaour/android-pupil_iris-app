@@ -14,7 +14,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
+            android:background="@color/blue_500"
             android:theme="@style/Theme.AppCompat.Light"
             app:title="@string/app_name" />
 
@@ -24,24 +24,24 @@
             android:text="OcuAnalyser"
             android:textSize="28sp"
             android:textStyle="bold"
-            android:textColor="@android:color/black"
+            android:textColor="@color/white"
             android:gravity="center"
             android:padding="16dp"
             android:fontFamily="sans-serif-light"
-            android:background="@android:color/white"
+            android:background="@color/blue_700"
             android:elevation="4dp"/>
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tab_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@android:color/white"
+            android:background="@color/white"
             app:tabGravity="fill"
             app:tabMode="fixed"
-            app:tabTextColor="@android:color/black"
-            app:tabSelectedTextColor="@android:color/black"
-            app:tabIndicatorColor="@android:color/black"
-            app:tabIndicatorHeight="3dp">
+            app:tabTextColor="@color/selector_tab_icon"
+            app:tabIndicatorColor="@color/blue_500"
+            app:tabIndicatorHeight="3dp"
+            app:tabIconTint="@color/selector_tab_icon">
 
             <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"

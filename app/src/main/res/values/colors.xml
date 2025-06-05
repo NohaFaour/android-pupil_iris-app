@@ -11,4 +11,5 @@
     <color name="blue_500">#318995</color>
     <color name="blue_700">#318995</color>
     <color name="gray_icon">#888888</color>
+    <color name="gray_bg">#EEEEEE</color>
 </resources>

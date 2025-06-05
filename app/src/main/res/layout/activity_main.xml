@@ -15,7 +15,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="@color/blue_500"
-            android:theme="@style/Theme.AppCompat.Light"
+            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
             app:title="@string/app_name" />
 
         <TextView
@@ -24,11 +24,11 @@
             android:text="OcuAnalyser"
             android:textSize="28sp"
             android:textStyle="bold"
-            android:textColor="@color/white"
+            android:textColor="@color/black"
             android:gravity="center"
             android:padding="16dp"
             android:fontFamily="sans-serif-light"
-            android:background="@color/blue_700"
+            android:background="@color/gray_bg"
             android:elevation="4dp"/>
 
         <com.google.android.material.tabs.TabLayout

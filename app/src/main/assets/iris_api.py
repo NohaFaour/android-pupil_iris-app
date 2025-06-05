@@ -48,7 +48,7 @@ def analyze_iris_image(img_pixels):
     (pupil_x, pupil_y), pupil_radius = cv2.minEnclosingCircle(pupil_contour)
     iris_center = output["metadata"]["eye_centers"]["iris_center"]
     iris_radius = (output["metadata"]["iris_bbox"]["x_max"] - output["metadata"]["iris_bbox"]["x_min"]) / 2
-    ipr = pupil_radius / iris_radius if iris_radius > 0 else 0
+    ipr = iris_radius / pupil_radius if iris_radius > 0 else 0
 
     # Create custom overlay visualization based on segmentation
     plt.figure(figsize=(10, 10))

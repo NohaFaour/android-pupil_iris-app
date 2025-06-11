@@ -15,6 +15,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.SeekBar
 import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -33,12 +35,25 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Job
 
 class CameraFragment : Fragment() {
     private val CAPTURE_IMAGE = 2
     private val CAMERA_PERMISSION_CODE = 100
     private var imageUri: Uri? = null
     private var currentPhotoPath: String? = null
+    private var currentBrightness: Float = 1.0f
+    private var currentContrast: Float = 1.0f
+    private var originalBitmap: Bitmap? = null
+    private var processingJob: Job? = null
+    private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var adjustedBitmap: Bitmap? = null
 
     private lateinit var imageView: ImageView
     private lateinit var tvResult: TextView
@@ -46,6 +61,11 @@ class CameraFragment : Fragment() {
     private lateinit var btnCrop: Button
     private lateinit var btnProcess: Button
     private lateinit var btnRetry: Button
+    private lateinit var brightnessLayout: LinearLayout
+    private lateinit var brightnessSeekBar: SeekBar
+    private lateinit var contrastSeekBar: SeekBar
+    private lateinit var brightnessCurrentValue: TextView
+    private lateinit var contrastCurrentValue: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -58,6 +78,35 @@ class CameraFragment : Fragment() {
         btnCrop = view.findViewById(R.id.btnCrop)
         btnProcess = view.findViewById(R.id.btnProcess)
         btnRetry = view.findViewById(R.id.btnRetry)
+        brightnessLayout = view.findViewById(R.id.brightnessLayout)
+        brightnessSeekBar = view.findViewById(R.id.brightnessSeekBar)
+        contrastSeekBar = view.findViewById(R.id.contrastSeekBar)
+        brightnessCurrentValue = view.findViewById(R.id.brightnessCurrentValue)
+        contrastCurrentValue = view.findViewById(R.id.contrastCurrentValue)
+
+        brightnessSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    currentBrightness = progress / 100f
+                    brightnessCurrentValue.text = "%.1f".format(currentBrightness)
+                    processImage()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        contrastSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    currentContrast = progress / 100f
+                    contrastCurrentValue.text = "%.1f".format(currentContrast)
+                    processImage()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
 
         btnCapture.setOnClickListener {
             if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
@@ -80,6 +129,7 @@ class CameraFragment : Fragment() {
                 tvResult.visibility = View.VISIBLE
                 btnProcess.visibility = View.GONE
                 btnCrop.visibility = View.GONE
+                brightnessLayout.visibility = View.GONE
                 uploadImage(it)
             }
         }
@@ -121,10 +171,12 @@ class CameraFragment : Fragment() {
                     val file = File(currentPhotoPath ?: "")
                     if (file.exists() && file.length() > 0) {
                         imageUri = Uri.fromFile(file)
-                        Glide.with(this).load(imageUri).into(imageView)
+                        val bitmap = loadAndAdjustImage(imageUri!!)
+                        imageView.setImageBitmap(bitmap)
                         imageView.visibility = View.VISIBLE
                         btnCrop.visibility = View.VISIBLE
                         btnProcess.visibility = View.VISIBLE
+                        brightnessLayout.visibility = View.VISIBLE
                         btnRetry.visibility = View.GONE
                         btnCapture.visibility = View.GONE
                         tvResult.visibility = View.GONE
@@ -139,7 +191,8 @@ class CameraFragment : Fragment() {
                     val resultUri = UCrop.getOutput(data!!)
                     resultUri?.let {
                         imageUri = it
-                        Glide.with(this).load(it).into(imageView)
+                        val bitmap = loadAndAdjustImage(it)
+                        imageView.setImageBitmap(bitmap)
                     }
                 } else if (resultCode == UCrop.RESULT_ERROR) {
                     val cropError = UCrop.getError(data!!)
@@ -157,9 +210,21 @@ class CameraFragment : Fragment() {
             .writeTimeout(ApiConfig.WRITE_TIMEOUT, TimeUnit.SECONDS)
             .readTimeout(ApiConfig.READ_TIMEOUT, TimeUnit.SECONDS)
             .build()
+
+        val bitmapToSend = if (currentBrightness != 1.0f || currentContrast != 1.0f) {
+            adjustedBitmap
+        } else {
+            originalBitmap
+        }
+
+        val tempFile = File(requireContext().cacheDir, "temp_upload.jpg")
+        val outputStream = FileOutputStream(tempFile)
+        bitmapToSend?.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+        outputStream.close()
+
         val requestBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
-            .addFormDataPart("file", file.name, file.asRequestBody("image/jpeg".toMediaTypeOrNull()))
+            .addFormDataPart("file", tempFile.name, tempFile.asRequestBody("image/jpeg".toMediaTypeOrNull()))
             .build()
 
         val request = Request.Builder()
@@ -267,7 +332,83 @@ class CameraFragment : Fragment() {
         btnCrop.visibility = View.GONE
         btnRetry.visibility = View.GONE
         btnCapture.visibility = View.VISIBLE
+        brightnessLayout.visibility = View.GONE
+        brightnessSeekBar.progress = 100
+        contrastSeekBar.progress = 100
+        brightnessCurrentValue.text = "1.0"
+        contrastCurrentValue.text = "1.0"
+        currentBrightness = 1.0f
+        currentContrast = 1.0f
         imageUri = null
         currentPhotoPath = null
+    }
+
+    private fun processImage() {
+        processingJob?.cancel()
+        processingJob = coroutineScope.launch {
+            originalBitmap?.let { bitmap ->
+                withContext(Dispatchers.Default) {
+                    adjustedBitmap = adjustImage(bitmap)
+                    withContext(Dispatchers.Main) {
+                        imageView.setImageBitmap(adjustedBitmap)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun adjustImage(bitmap: Bitmap): Bitmap {
+        val adjustedBitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, bitmap.config ?: Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(adjustedBitmap)
+        val paint = android.graphics.Paint()
+        
+        // Create color matrix for brightness and contrast
+        val colorMatrix = android.graphics.ColorMatrix()
+        val brightnessMatrix = android.graphics.ColorMatrix()
+        val contrastMatrix = android.graphics.ColorMatrix()
+        
+        // Set brightness
+        brightnessMatrix.set(floatArrayOf(
+            currentBrightness, 0f, 0f, 0f, 0f,
+            0f, currentBrightness, 0f, 0f, 0f,
+            0f, 0f, currentBrightness, 0f, 0f,
+            0f, 0f, 0f, 1f, 0f
+        ))
+        
+        // Set contrast
+        val scale = currentContrast
+        val translate = (-.5f * scale + .5f) * 255f
+        contrastMatrix.set(floatArrayOf(
+            scale, 0f, 0f, 0f, translate,
+            0f, scale, 0f, 0f, translate,
+            0f, 0f, scale, 0f, translate,
+            0f, 0f, 0f, 1f, 0f
+        ))
+        
+        // Combine matrices
+        colorMatrix.postConcat(brightnessMatrix)
+        colorMatrix.postConcat(contrastMatrix)
+        
+        paint.colorFilter = android.graphics.ColorMatrixColorFilter(colorMatrix)
+        canvas.drawBitmap(bitmap, 0f, 0f, paint)
+        return adjustedBitmap
+    }
+
+    private fun loadAndAdjustImage(uri: Uri): Bitmap? {
+        val inputStream = requireContext().contentResolver.openInputStream(uri)
+        originalBitmap = BitmapFactory.decodeStream(inputStream)
+        inputStream?.close()
+        
+        return originalBitmap?.let { bitmap ->
+            adjustImage(bitmap)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        coroutineScope.cancel()
+        processingJob?.cancel()
+        originalBitmap?.recycle()
+        originalBitmap = null
     }
 } 

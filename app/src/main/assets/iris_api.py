@@ -28,8 +28,8 @@ def analyze_iris_image(img_pixels):
     reflection_mask = cv2.bitwise_and(bright_spots, pupil_mask)
 
     # Optional: Refine reflection mask with larger kernel
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
-    reflection_mask = cv2.dilate(reflection_mask, kernel, iterations=2)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+    reflection_mask = cv2.dilate(reflection_mask, kernel, iterations=3)
 
     # Step 4: Inpaint reflections with larger radius
     img_cleaned = cv2.inpaint(img_pixels, reflection_mask, inpaintRadius=9, flags=cv2.INPAINT_NS)
@@ -97,5 +97,18 @@ async def analyze_iris(file: UploadFile = File(...)):
     img = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
     if img is None:
         return JSONResponse({"error": "Invalid image file."}, status_code=400)
+    
+    # Smart resize: maintain aspect ratio and only reduce very large images
+    height, width = img.shape[:2]
+    max_dimension = 800  # Maximum allowed dimension
+    
+    # Calculate scaling factor if image is too large
+    if height > max_dimension or width > max_dimension:
+        scale = max_dimension / max(height, width)
+        new_width = int(width * scale)
+        new_height = int(height * scale)
+        img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        print(f"Resized image from {width}x{height} to {new_width}x{new_height}")
+    
     result = analyze_iris_image(img)
     return JSONResponse(result)

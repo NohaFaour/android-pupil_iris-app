@@ -158,8 +158,8 @@ class CameraFragment : Fragment() {
     private fun startCrop(uri: Uri) {
         val destinationFileName = "cropped_${System.currentTimeMillis()}.jpg"
         UCrop.of(uri, Uri.fromFile(File(requireContext().cacheDir, destinationFileName)))
-            .withAspectRatio(1f, 1f)
             .withMaxResultSize(800, 800)
+            .withAspectRatio(0f, 0f)  // Free aspect ratio
             .start(requireContext(), this)
     }
 
@@ -280,13 +280,20 @@ class CameraFragment : Fragment() {
         inputStream?.close()
         val maxDim = 800
         val resizedBitmap = if (bitmap != null && (bitmap.width > maxDim || bitmap.height > maxDim)) {
-            val aspectRatio = bitmap.width.toFloat() / bitmap.height.toFloat()
-            val (newWidth, newHeight) = if (aspectRatio > 1) {
-                maxDim to (maxDim / aspectRatio).toInt()
+            val (cropWidth, cropHeight, startX, startY) = if (bitmap.width > bitmap.height) {
+                val cropWidth = (bitmap.height * maxDim / maxDim).toInt()
+                val cropHeight = bitmap.height
+                val startX = (bitmap.width - cropWidth) / 2
+                val startY = 0
+                Quadruple(cropWidth, cropHeight, startX, startY)
             } else {
-                (maxDim * aspectRatio).toInt() to maxDim
+                val cropWidth = bitmap.width
+                val cropHeight = (bitmap.width * maxDim / maxDim).toInt()
+                val startX = 0
+                val startY = (bitmap.height - cropHeight) / 2
+                Quadruple(cropWidth, cropHeight, startX, startY)
             }
-            Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+            Bitmap.createBitmap(bitmap, startX, startY, cropWidth, cropHeight)
         } else {
             bitmap
         }
@@ -296,6 +303,8 @@ class CameraFragment : Fragment() {
         outputStream.close()
         return file
     }
+
+    private data class Quadruple<T>(val first: T, val second: T, val third: T, val fourth: T)
 
     private fun createImageFile(): File {
         val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())

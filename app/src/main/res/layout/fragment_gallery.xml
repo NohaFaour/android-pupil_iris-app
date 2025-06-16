@@ -143,7 +143,7 @@
         android:id="@+id/btnCrop"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Adjust Image Size"
+        android:text="Crop Image"
         android:layout_marginTop="8dp"
         android:visibility="gone" />
 

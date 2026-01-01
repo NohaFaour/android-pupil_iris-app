@@ -1,4 +1,4 @@
-# Backend Trial Android Application
+# Pupil-Iris Detection Android Application
 
 ## Project Overview
 This is an Android application that provides a tab-based interface with three main features: Home, Camera, and Gallery. The app is built using Kotlin and follows modern Android development practices. It includes integration with a backend server for iris analysis functionality.

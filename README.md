@@ -250,8 +250,4 @@ object ApiConfig {
 14. Implement background processing
 15. Add push notifications
 
-## Contributing
-[Add contribution guidelines here]
-
-## License
-[Add license information here] 
+ 
